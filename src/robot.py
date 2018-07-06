@@ -171,9 +171,9 @@ class Robot(object):
             direction = self._target_direction()
             if direction == 'behind':
                 # TRY SOLVE 2 turningarounds
-                """if self.data.blocked_left:
+                if self.data.blocked_left:
                     self.state = 'driving.waypoint.checkpriority'
-                    return"""
+                    return
                 self.turnLeft()
                 self.state = 'driving.waypoint.turnaround.wait'
             else:
@@ -183,7 +183,7 @@ class Robot(object):
                 self.driveForward()
                 self.turnLeft()
             else:
-                pass  #self.turnRight()
+                self.turnRight()
             self.state = 'driving.initial'
         elif self.state == 'driving.waypoint.checkpriority':
             right_before_left = not self.data.blocked_waypoint_right
