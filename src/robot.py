@@ -3,6 +3,7 @@ from math import pi, sin, cos
 import pygame
 
 from level import TILE_SIZE, tilepos_to_screenpos
+from level import NORTH, EAST, SOUTH, WEST
 from sensor import tiles_to
 from main import FRAME_RATE
 
@@ -78,13 +79,13 @@ class Robot(object):
     def driveForward(self):
         def forward(robot, data):
             steps, remaining = data
-            if robot.heading == 0:
+            if robot.heading == NORTH:
                 robot.offset[1] = 1 - remaining/steps
-            elif robot.heading == 90:
+            elif robot.heading == WEST:
                 robot.offset[0] = -1 + remaining/steps
-            elif robot.heading == 180:
+            elif robot.heading == SOUTH:
                 robot.offset[1] = -1 + remaining/steps
-            elif robot.heading == 270:
+            elif robot.heading == EAST:
                 robot.offset[0] = 1 - remaining/steps
             return remaining==0, (steps, remaining -1 )
 
@@ -149,8 +150,6 @@ class Robot(object):
         if self.moving:
             return
 
-        # print(str(self), "is in state", self.state)
-
         if self.state == 'stopped':
             pass
         elif self.state == 'unloading':
@@ -162,14 +161,36 @@ class Robot(object):
             else:
                 if data.pos_type == 'waypoint':
                     self.state = 'driving.waypoint.initial'
-                # TODO add other tile types
-                if data.pos_type == 'station':
-                    self.turnLeft()
-                    self.state = 'driving.waypoint.turnaround.wait'
-        elif self.state.startswith('driving.waypoint.'):
-            return self._waypoint()
+                elif data.pos_type == 'station':
+                    self._station_behavior()
+        elif self.state.startswith('driving.waypoint'):
+            return self._states_waypoint()
+        elif self.state.startswith('driving.station'):
+            return self._states_station()
 
-    def _waypoint(self):
+    def _station_behavior(self):
+        to_charging_below = self.target[0]%3 ==0 and self.target[0] + 1 == self.data.pos[0] and self.target[1] <= self.data.pos[1]
+        if to_charging_below:
+            if self.data.pos[1] == self.target[1] and self.data.pos_orientation != WEST:
+                self.turnRight()
+            elif not self.data.blocked_front:
+                self.driveForward()
+        else:
+            if self.data.pos_orientation != self._station_traffic_direction():
+                self.turnLeft()
+            elif not self.data.blocked_front:
+                self.driveForward()
+                
+    def _station_traffic_direction(self):
+        xmod3 = self.data.pos[0] % 3
+        if xmod3 == 0 or self.data.pos[1] == -5 and xmod3 == 1:
+            return EAST
+        elif xmod3 == 1:
+            return SOUTH
+        else:
+            return NORTH
+
+    def _states_waypoint(self):
         if self.state == 'driving.waypoint.initial':
             direction = self._target_direction()
             if direction == 'behind':
@@ -189,7 +210,7 @@ class Robot(object):
             self.state = 'driving.initial'
         elif self.state == 'driving.waypoint.checkpriority':
             right_before_left = not self.data.blocked_waypoint_right
-            stalemate = self.data.blocked_waypoint_right and self.data.blocked_waypoint_ahead and self.data.blocked_waypoint_left and self.data.pos_orientation in [0, 180]
+            stalemate = self.data.blocked_waypoint_right and self.data.blocked_waypoint_ahead and self.data.blocked_waypoint_left and self.data.pos_orientation in [NORTH, SOUTH]
             crossroad_free = not self.data.blocked_crossroad_ahead
             if (right_before_left or stalemate) and crossroad_free:
                 self.driveForward()

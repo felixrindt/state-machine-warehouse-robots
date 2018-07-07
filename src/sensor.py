@@ -1,5 +1,6 @@
 
-from level import tile_type
+from level import tile_type, station_relative_pos, STATION_WALLS
+from level import NORTH, EAST, WEST, SOUTH
 from math import pi, sin, cos
 
 
@@ -19,6 +20,15 @@ def tiles_to(origin, heading, target, rounded=True):
         return round(tx-rx), round(ty-ry)
     else:
         return tx-rx, ty-ry
+
+def pos_at(origin, heading, direction, rounded=True):
+    tx, ty = origin[0] + direction[0], origin[1] + direction[1]
+    tx, ty = rotate_point((rx,ry), origin, heading)
+    if rounded:
+        return round(tx), round(ty)
+    else:
+        return tx, ty
+
 
 def float_pos(robot):
     return (robot.rect.left + robot.offset[0], robot.rect.bottom + robot.offset[1])
@@ -42,11 +52,27 @@ class SensorData(object):
         self.blocked_crossroad_ahead = False
         self.blocked_crossroad_right = False
 
-        # TODO implement tile type check
+        # station logic
+        station_pos = station_relative_pos(self.pos)
+        if tile_type(station_pos) == 'station':
+            for wall in STATION_WALLS[station_pos]:
+                wall= (wall - robot.heading) % 360
+                if wall == NORTH:
+                    self.blocked_front = True
+                elif wall == WEST:
+                    self.blocked_left = True
+                elif wall == EAST:
+                    self.blocked_right = True
+
+        # check collisions with other robots
         for other in robots:
             if other is robot:
                 continue
             to = tiles_to(self.pos, robot.heading, float_pos(other), rounded=False)
+            if dist(to, (0,0)) < 1 and robot.id < other.id:
+                print("collision detected!")
+                print("robots where in states:")
+                print(robot.state, other.state, sep="\n")
             if dist(to, (0,1)) < 1:
                 self.blocked_front = True
             if dist(to, (-1,0)) < 1:

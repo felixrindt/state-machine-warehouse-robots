@@ -8,20 +8,20 @@ import level
 from level import TILE_SIZE
 from sensor import SensorData
 
-FRAME_RATE = 60
+FRAME_RATE = 30
 pygame.init()
 
 class Warehouse(object):
 
     def run(self):
         size = width, height = 992, 620
-        viewport = pygame.Rect(0, -height, width, height)
+        viewport = pygame.Rect(0, -height + 6*TILE_SIZE, width, height)
 
         screen = pygame.display.set_mode(size)
 
         clock = pygame.time.Clock()
 
-        robots = [bots.Robot(x, y, self) for x in range(2, width//TILE_SIZE, 3) for y in range(0, 6, 3)]
+        robots = [bots.Robot(x, y, self) for x in range(0, width//TILE_SIZE, 3) for y in range(-4, -1, 1)]
 
         #robots = [bots.Robot(2,0,self)]
 
@@ -59,8 +59,8 @@ class Warehouse(object):
         self.assign_random_target(robot)
 
     def assign_random_target(self, robot):
-        x = 0 + 3 * random.randint(0,9)
-        y = 1 + 3 * random.randint(0,5)
+        x = 0 + 3 * random.randint(0,10)
+        y = 1 + 3 * random.randint(0,3)
         robot.driveTo((x,y))
 
 
