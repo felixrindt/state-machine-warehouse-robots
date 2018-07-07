@@ -203,16 +203,18 @@ class Robot(object):
                 elif direction == 'left':
                     self.driveForward()
                     self.turnLeft()
-                    self.driveForward()
-                    self.state = 'driving.waypoint.leavecrossroad'
+                    self.state = 'driving.waypoint.finishleftturn'
+        elif self.state == 'driving.waypoint.finishleftturn':
+            if not self.data.blocked_front:
+                self.driveForward()
+                self.state = 'driving.waypoint.leavecrossroad'
         elif self.state == 'driving.waypoint.leavecrossroad':
             if not self.data.blocked_front:
                 self.driveForward()
                 self.state = 'driving.initial'
             else:
                 self.turnLeft()
-                self.driveForward()
-
+                self.state = 'driving.waypoint.finishleftturn'
 
 
     def _target_reached(self):
