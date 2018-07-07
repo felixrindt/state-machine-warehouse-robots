@@ -8,7 +8,7 @@ import level
 from level import TILE_SIZE
 from sensor import SensorData
 
-FRAME_RATE = 30
+FRAME_RATE = 60
 pygame.init()
 
 class Warehouse(object):

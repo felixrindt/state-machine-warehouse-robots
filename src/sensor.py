@@ -61,5 +61,5 @@ class SensorData(object):
                 self.blocked_waypoint_right = True
             if dist(to, (-0.5,1.5)) < 2:
                 self.blocked_crossroad_ahead = True
-            if dist(to, (1.5,0.5)) < 1:
+            if dist(to, (1.5,0.5)) < 2:
                 self.blocked_crossroad_right = True
