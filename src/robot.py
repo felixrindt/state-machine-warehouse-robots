@@ -49,7 +49,7 @@ class Robot(object):
         self._draw_target_line(screen, viewport)
 
         if self.data.blocked_crossroad_ahead:
-            pygame.draw.circle(screen, (255,0,0), (rx+16,ry+16), 8)
+            pygame.draw.circle(screen, (255,0,0), (rx+16,ry+16), 8, 2)
 
     def _draw_target_line(self, screen, viewport):
         rx, ry = self.rect.left, self.rect.bottom
@@ -88,11 +88,11 @@ class Robot(object):
                 robot.offset[0] = 1 - remaining/steps
             return remaining==0, (steps, remaining -1 )
 
-        steps = FRAME_RATE / self.speed
+        steps = FRAME_RATE // self.speed
         self.moves.append(Move(forward, (steps, steps)))
 
     def turnLeft(self):
-        steps = FRAME_RATE / self.speed
+        steps = FRAME_RATE // self.speed
         def left(robot, data):
             steps, remaining = data
             robot.heading += 90 / steps
@@ -102,7 +102,7 @@ class Robot(object):
         self.moves.append(Move(left, (steps, steps)))
 
     def turnRight(self):
-        steps = FRAME_RATE / self.speed
+        steps = FRAME_RATE // self.speed
         def right(robot, data):
             steps, remaining = data
             robot.heading -= 90 / steps
@@ -149,7 +149,7 @@ class Robot(object):
         if self.moving:
             return
 
-        print(str(self), "is in state", self.state)
+        # print(str(self), "is in state", self.state)
 
         if self.state == 'stopped':
             pass
@@ -163,6 +163,9 @@ class Robot(object):
                 if data.pos_type == 'waypoint':
                     self.state = 'driving.waypoint.initial'
                 # TODO add other tile types
+                if data.pos_type == 'station':
+                    self.turnLeft()
+                    self.state = 'driving.waypoint.turnaround.wait'
         elif self.state.startswith('driving.waypoint.'):
             return self._waypoint()
 
@@ -170,12 +173,11 @@ class Robot(object):
         if self.state == 'driving.waypoint.initial':
             direction = self._target_direction()
             if direction == 'behind':
-                # TRY SOLVE 2 turningarounds
                 if self.data.blocked_left:
                     self.state = 'driving.waypoint.checkpriority'
-                    return
-                self.turnLeft()
-                self.state = 'driving.waypoint.turnaround.wait'
+                else:
+                    self.turnLeft()
+                    self.state = 'driving.waypoint.turnaround.wait'
             else:
                 self.state = 'driving.waypoint.checkpriority'
         elif self.state == 'driving.waypoint.turnaround.wait':
@@ -207,6 +209,9 @@ class Robot(object):
             if not self.data.blocked_front:
                 self.driveForward()
                 self.state = 'driving.initial'
+            else:
+                self.turnLeft()
+                self.driveForward()
 
 
 
