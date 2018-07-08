@@ -1,21 +1,78 @@
 
 from math import pi, sin, cos
+import random
 import pygame
 
-from level import TILE_SIZE, tilepos_to_screenpos
+from level import TILE_SIZE, CHARGERS_PER_STATION, tilepos_to_screenpos
 from level import NORTH, EAST, SOUTH, WEST
 from sensor import tiles_to
 from main import FRAME_RATE
 
 texture = pygame.image.load("res/robot{}.png".format(TILE_SIZE))
 texture_unloading = pygame.image.load("res/robot_unloading{}.png".format(TILE_SIZE))
+texture_loaded = pygame.image.load("res/robot_loaded{}.png".format(TILE_SIZE))
+
+class Processor(object):
+
+    BATTERY_LOW = 0.5
+    BATTERY_HIGH = 1.0
+
+    def __init__(self, robot):
+        self.robot = robot
+        self.robot.processor = self
+        self.state = 'charging'
+        self.chargeport_pos = self.robot.rect.left//3*3, self.robot.rect.bottom
+        self.station_entrance_pos = self.chargeport_pos[0] + 1, 0
+        self.station_exit_pos = self.chargeport_pos[0] + 2, 0
+
+    def tick(self):
+        if self.state == 'charging':
+            self.robot.battery += 0.002
+            if self.robot.battery >= Processor.BATTERY_HIGH:
+                self.enque()
+
+    def enque(self):
+        self.robot.driveTo(self.station_exit_pos)
+        self.state = 'queueing'
+
+    def arrived(self):
+        if self.state == 'queueing':
+            self.deliver()
+        elif self.state == 'delivering':
+            self.robot.loaded = False
+            self.robot.unload()
+        elif self.state == 'returning_to_station':
+            if self.robot.battery < Processor.BATTERY_LOW:
+                self.charge()
+            else:
+                self.enque()
+        elif self.state == 'returning_to_charging':
+            self.state = 'charging'
+
+    def charge(self):
+        self.robot.driveTo(self.chargeport_pos)
+        self.state = 'returning_to_charging'
+
+    def return_to_station(self):
+        self.state = 'returning_to_station'
+        self.robot.driveTo(self.station_entrance_pos)
+
+    def unloaded(self):
+        self.return_to_station()
+
+    def deliver(self):
+        self.state = 'delivering'
+        self.robot.loaded = True
+        x = 0 + 3 * random.randint(0,10)
+        y = 1 + 3 * random.randint(1,CHARGERS_PER_STATION)
+        self.robot.driveTo((x,y))
 
 
 class Robot(object):
 
     ROBOCOUNT = 0
 
-    def __init__(self, x, y, processor):
+    def __init__(self, x, y):
         self.rect = pygame.Rect(x, y-1, 1, 1)
         self.state = "stopped"
         self.offset = [0,0]
@@ -25,10 +82,12 @@ class Robot(object):
         self.target = None
         self.moves = []
         self.data = None
-        self.processor = processor
+        self.processor = Processor(self)
         Robot.ROBOCOUNT += 1
         self.id = Robot.ROBOCOUNT
 
+        self.loaded = False
+        self.battery = 0.8
         self.speed = 4.0  # tiles per second
         self.unload_time = 0.5  # seconds
 
@@ -41,34 +100,45 @@ class Robot(object):
         y += self.offset[1]
         rx, ry = tilepos_to_screenpos((x,y), viewport)
         rect = pygame.Rect(rx, ry, TILE_SIZE, TILE_SIZE)
-        t = texture_unloading if self.unloading else texture
+
+        t = texture
+        if self.unloading:
+            t = texture_unloading
+        elif self.loaded:
+            t = texture_loaded
+
         surface = pygame.transform.rotate(t, self.heading)
         srect = surface.get_rect()
         srect.center = rect.center
         screen.blit(surface, srect)
 
-        self._draw_target_line(screen, viewport)
+        if self.target:
+            self._draw_line_to(screen, viewport, self.target, (250,250,250))
 
-        if self.data.blocked_crossroad_ahead:
-            pygame.draw.circle(screen, (255,0,0), (rx+16,ry+16), 8, 2)
+        pygame.draw.arc(screen, (250,250,250), rect.inflate(-16,-16), 0, max(0,self.battery)*2*pi, 4)
 
-    def _draw_target_line(self, screen, viewport):
+        # if self.data.blocked_crossroad_ahead: pygame.draw.circle(screen, (255,0,0), (rx+16,ry+16), 8, 2)
+
+    def _draw_line_to(self, screen, viewport, pos, color):
         rx, ry = self.rect.left, self.rect.bottom
         rx += self.offset[0] + 0.5
         ry += self.offset[1] - 0.5
         rx, ry = tilepos_to_screenpos((rx,ry), viewport)
         
-        tx, ty = self.target[0] + 0.5, self.target[1] - 0.5
+        tx, ty = pos[0] + 0.5, pos[1] - 0.5
         tx, ty = tilepos_to_screenpos((tx,ty), viewport)
 
-        pygame.draw.line(screen, (250,250,250), (rx,ry), (tx,ty))
+        pygame.draw.line(screen, color, (rx,ry), (tx,ty))
 
 
     def tick(self):
+        self.processor.tick()
+
         self.moving = len(self.moves) > 0
         if len(self.moves):
             finished = self.moves[0].tick(self)
             if finished:
+                self.battery -= 0.005
                 del self.moves[0]
                 self.offset[0] = round(self.offset[0])
                 self.offset[1] = round(self.offset[1])
@@ -134,7 +204,7 @@ class Robot(object):
     def unloaded(self):
         if self.state == 'unloading':
             self.state = 'stopped'
-            self.processor.unloaded(self)
+            self.processor.unloaded()
 
     def unload(self):
         # movements are blocking
@@ -157,7 +227,8 @@ class Robot(object):
         elif self.state == 'driving.initial':
             if self._target_reached():
                 self.state = 'stopped'
-                self.processor.arrived(self)
+                self.target = None
+                self.processor.arrived()
             else:
                 if data.pos_type == 'waypoint':
                     self.state = 'driving.waypoint.initial'
@@ -165,8 +236,8 @@ class Robot(object):
                     self._station_behavior()
         elif self.state.startswith('driving.waypoint'):
             return self._states_waypoint()
-        elif self.state.startswith('driving.station'):
-            return self._states_station()
+        else:
+            print("unknown state", self.state)
 
     def _station_behavior(self):
         to_charging_below = self.target[0]%3 ==0 and self.target[0] + 1 == self.data.pos[0] and self.target[1] <= self.data.pos[1]
@@ -176,19 +247,24 @@ class Robot(object):
             elif not self.data.blocked_front:
                 self.driveForward()
         else:
-            if self.data.pos_orientation != self._station_traffic_direction():
-                self.turnLeft()
+            direction, left = self._station_traffic_direction()
+            if self.data.pos_orientation != direction:
+                if left:
+                    self.turnLeft()
+                else:
+                    self.turnRight()
             elif not self.data.blocked_front:
                 self.driveForward()
                 
     def _station_traffic_direction(self):
+        """ return tuple of which direction to go and wether to use left turns for doing so (else use right turns) """
         xmod3 = self.data.pos[0] % 3
-        if xmod3 == 0 or self.data.pos[1] == -5 and xmod3 == 1:
-            return EAST
+        if xmod3 == 0 or self.data.pos[1] == -2-CHARGERS_PER_STATION and xmod3 == 1:
+            return EAST, True
         elif xmod3 == 1:
-            return SOUTH
+            return SOUTH, False
         else:
-            return NORTH
+            return NORTH, True
 
     def _states_waypoint(self):
         if self.state == 'driving.waypoint.initial':

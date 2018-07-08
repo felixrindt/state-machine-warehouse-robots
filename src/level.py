@@ -3,6 +3,7 @@ import pygame
 from math import floor, ceil
 
 TILE_SIZE = 32
+CHARGERS_PER_STATION = 5
 
 TILE_TYPES = {
         'station': (250,150,150),
@@ -15,17 +16,17 @@ NORTH, WEST, SOUTH, EAST = range(0,360, 90)
 STATION_WALLS = {
         (1,0): [EAST, WEST],
         (1,-1): [EAST, WEST],
-        (1, -5): [WEST, SOUTH],
-        (2, -5): [SOUTH, EAST],
+        (1, -2-CHARGERS_PER_STATION): [WEST, SOUTH],
+        (2, -2-CHARGERS_PER_STATION): [SOUTH, EAST],
 }
 STATION_WALLS.update({
-        (1, y): [EAST] for y in range(-4,-1)
+        (1, y): [EAST] for y in range(-1-CHARGERS_PER_STATION,-1)
 })
 STATION_WALLS.update({
-        (0, y): [NORTH, WEST, SOUTH] for y in range(-4,-1)
+        (0, y): [NORTH, WEST, SOUTH] for y in range(-1-CHARGERS_PER_STATION,-1)
 })
 STATION_WALLS.update({
-        (2,y): [EAST, WEST] for y in range(-4,0)
+        (2,y): [EAST, WEST] for y in range(-1-CHARGERS_PER_STATION,0)
 })
 
 def tilepos_to_screenpos(tpos, viewport):
@@ -56,6 +57,8 @@ def draw_tile(screen, viewport, pos):
     rx, ry = tilepos_to_screenpos((x,y), viewport)
     rect = pygame.Rect(rx, ry, TILE_SIZE, TILE_SIZE)
     pygame.draw.rect(screen, TILE_TYPES[tile_type(pos)], rect)
+    if pos == (0,0):
+        pygame.draw.rect(screen, (250,250,250), rect)
 
 
 def draw_station_walls(screen, viewport, pos):

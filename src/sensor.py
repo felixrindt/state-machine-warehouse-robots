@@ -34,7 +34,7 @@ def float_pos(robot):
     return (robot.rect.left + robot.offset[0], robot.rect.bottom + robot.offset[1])
 
 def dist(here, there):
-    return abs(here[0]-there[0]) + abs(here[1]-there[1])
+    return max(abs(here[0]-there[0]), abs(here[1]-there[1]))
 
 class SensorData(object):
     
@@ -64,28 +64,43 @@ class SensorData(object):
                 elif wall == EAST:
                     self.blocked_right = True
 
-        # check collisions with other robots
+        # sensors detecting robots
         for other in robots:
             if other is robot:
                 continue
-            to = tiles_to(self.pos, robot.heading, float_pos(other), rounded=False)
-            if dist(to, (0,0)) < 1 and robot.id < other.id:
+            if dist(self.pos, (other.rect.left, other.rect.bottom)) > 4:
+                pass #continue
+            to = tiles_to(float_pos(robot), robot.heading, float_pos(other), rounded=False)
+            if dist(to, (0,0)) < 0.7 and robot.id < other.id:
                 print("collision detected!")
+                print("dist:", dist(to,(0,0)))
                 print("robots where in states:")
                 print(robot.state, other.state, sep="\n")
-            if dist(to, (0,1)) < 1:
+                print("robots where in positions:")
+                print(robot.rect, other.rect, sep="\n")
+                print("floatpos")
+                print(float_pos(robot), float_pos(other), sep="\n")
+                print("to:", to)
+
+            # dont be a helpful sensor if robot is moving
+            if robot.moving:
+                continue
+
+            # subtracting 0.05 because of rounding errors
+            if dist(to, (0,1)) < 0.95:
                 self.blocked_front = True
-            if dist(to, (-1,0)) < 1:
+            if dist(to, (-1,0)) < 0.95:
                 self.blocked_left = True
-            if dist(to, (1,0)) < 1:
+            if dist(to, (1,0)) < 0.95:
                 self.blicked_right = True
-            if dist(to, (-1,3)) < 1:
+            if dist(to, (-1,3)) < 0.95:
                 self.blocked_waypoint_ahead = True
-            if dist(to, (-2,1)) < 1:
+            if dist(to, (-2,1)) < 0.95:
                 self.blocked_waypoint_left = True
-            if dist(to, (1,2)) < 1:
+            if dist(to, (1,2)) < 0.95:
                 self.blocked_waypoint_right = True
-            if dist(to, (-0.5,1.5)) < 2:
+            if dist(to, (-0.5,1.5)) < 1.45:
                 self.blocked_crossroad_ahead = True
-            if dist(to, (1.5,0.5)) < 2:
+            if dist(to, (1.5,0.5)) < 1.45:
                 self.blocked_crossroad_right = True
+
