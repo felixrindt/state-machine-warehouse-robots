@@ -27,7 +27,7 @@ class Processor(object):
 
     def tick(self):
         if self.state == 'charging':
-            self.robot.battery += 0.002
+            self.robot.battery += 0.12 / FRAME_RATE
             if self.robot.battery >= Processor.BATTERY_HIGH:
                 self.enque()
 
@@ -267,8 +267,8 @@ class Robot(object):
             return NORTH, True
 
     def _states_waypoint(self):
+        direction = self._target_direction()
         if self.state == 'driving.waypoint.initial':
-            direction = self._target_direction()
             if direction == 'behind':
                 if self.data.blocked_left:
                     self.state = 'driving.waypoint.checkpriority'
@@ -290,7 +290,6 @@ class Robot(object):
             crossroad_free = not self.data.blocked_crossroad_ahead
             if (right_before_left or stalemate) and crossroad_free:
                 self.driveForward()
-                direction = self._target_direction()
                 if direction == 'right':
                     self.turnRight()
                     self.state = 'driving.waypoint.leavecrossroad'

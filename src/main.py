@@ -9,7 +9,7 @@ from level import TILE_SIZE, CHARGERS_PER_STATION
 from sensor import SensorData
 
 FRAME_RATE = 60
-SENSOR_RATE = 3
+SENSOR_RATE = 10
 
 class Warehouse(object):
 
