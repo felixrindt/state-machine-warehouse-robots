@@ -95,6 +95,9 @@ class Robot(object):
         return "Robot {}".format(self.id)
 
     def draw(self, screen, viewport):
+        if self.target:
+            self._draw_line_to(screen, viewport, self.target, (250,250,250))
+
         x, y = self.rect.left, self.rect.bottom
         x += self.offset[0]
         y += self.offset[1]
@@ -112,11 +115,7 @@ class Robot(object):
         srect.center = rect.center
         screen.blit(surface, srect)
 
-        if self.target:
-            self._draw_line_to(screen, viewport, self.target, (250,250,250))
-
         pygame.draw.arc(screen, (250,250,250), rect.inflate(-16,-16), 0, max(0,self.battery)*2*pi, 4)
-
         # if self.data.blocked_crossroad_ahead: pygame.draw.circle(screen, (255,0,0), (rx+16,ry+16), 8, 2)
 
     def _draw_line_to(self, screen, viewport, pos, color):

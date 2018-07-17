@@ -39,6 +39,10 @@ def dist(here, there):
 class SensorData(object):
     
     def __init__(self, robot, robots):
+        self.update(robot, robots)
+
+    def update(self, robot, robots):
+        from time import time
         self.pos = (robot.rect.left, robot.rect.bottom)
         self.pos_type = tile_type(self.pos)
         self.pos_orientation = robot.heading
@@ -51,6 +55,7 @@ class SensorData(object):
         self.blocked_waypoint_right = False
         self.blocked_crossroad_ahead = False
         self.blocked_crossroad_right = False
+        self.collided = False
 
         # station logic
         station_pos = station_relative_pos(self.pos)
@@ -69,18 +74,17 @@ class SensorData(object):
             if other is robot:
                 continue
             if dist(self.pos, (other.rect.left, other.rect.bottom)) > 4:
-                pass #continue
+                continue
             to = tiles_to(float_pos(robot), robot.heading, float_pos(other), rounded=False)
             if dist(to, (0,0)) < 0.7 and robot.id < other.id:
                 print("collision detected!")
-                print("dist:", dist(to,(0,0)))
-                print("robots where in states:")
+                print("states:")
                 print(robot.state, other.state, sep="\n")
-                print("robots where in positions:")
-                print(robot.rect, other.rect, sep="\n")
-                print("floatpos")
+                print("exact positions")
                 print(float_pos(robot), float_pos(other), sep="\n")
-                print("to:", to)
+                print("relative position:", to)
+                print("distance:", dist(to,(0,0)))
+                self.collided = True
 
             # dont be a helpful sensor if robot is moving
             if robot.moving:

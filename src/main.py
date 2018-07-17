@@ -9,7 +9,7 @@ from level import TILE_SIZE, CHARGERS_PER_STATION
 from sensor import SensorData
 
 FRAME_RATE = 60
-SENSOR_RATE = 10
+SENSOR_RATE = 20
 
 class Warehouse(object):
 
@@ -32,7 +32,11 @@ class Warehouse(object):
         self.paused = False
         self.tick = 0
 
+        srates = {bot: round(SENSOR_RATE * (0.2 + 0.8 * random.random())) for bot in robots}
+
+        from time import time
         while self.running:
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT: sys.exit()
                 if event.type == pygame.VIDEORESIZE:
@@ -47,13 +51,16 @@ class Warehouse(object):
 
             """ LOGIC """
 
+
             if not self.paused:
 
                 for idx, r in enumerate(robots):
-                    modulus = FRAME_RATE//SENSOR_RATE
+                    modulus = FRAME_RATE//srates[r]
                     if self.tick % modulus == idx % modulus:
-                        r.sensorData(SensorData(r, robots))
-
+                        sd = SensorData(r, robots)
+                        if False and sd.collided:
+                            self.paused = True
+                        r.sensorData(sd)
                 for robot in robots:
                     robot.tick()
 
@@ -69,7 +76,6 @@ class Warehouse(object):
             self.tick += 1
 
 
-
 if __name__=="__main__":
-    w = Warehouse()
-    w.run()
+    warehouse = Warehouse()
+    warehouse.run()
