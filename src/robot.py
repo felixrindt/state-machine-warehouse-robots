@@ -63,7 +63,7 @@ class Processor(object):
     def deliver(self):
         self.state = 'delivering'
         self.robot.loaded = True
-        x = 0 + 3 * random.randint(0,10)
+        x = 0 + 3 * random.randint(0,12)
         y = 1 + 3 * random.randint(1,CHARGERS_PER_STATION)
         self.robot.driveTo((x,y))
 
