@@ -1,4 +1,4 @@
-# state-mashine-warehouse-robots
+# state-machine-warehouse-robots
 
 This is an implementation of the state mashines we created in a project as part of a modelling lecture.
 
