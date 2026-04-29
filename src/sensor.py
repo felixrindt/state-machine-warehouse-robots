@@ -49,7 +49,7 @@ class SensorData(object):
         self.pos_float = float_pos(robot)
         self.blocked_front = False
         self.blocked_left = False
-        self.blicked_right = False
+        self.blocked_right = False
         self.blocked_waypoint_ahead = False
         self.blocked_waypoint_left = False
         self.blocked_waypoint_right = False
@@ -96,7 +96,7 @@ class SensorData(object):
             if dist(to, (-1,0)) < 0.95:
                 self.blocked_left = True
             if dist(to, (1,0)) < 0.95:
-                self.blicked_right = True
+                self.blocked_right = True
             if dist(to, (-1,3)) < 0.95:
                 self.blocked_waypoint_ahead = True
             if dist(to, (-2,1)) < 0.95:

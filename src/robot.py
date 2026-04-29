@@ -67,6 +67,8 @@ class Processor(object):
         y = 1 + 3 * random.randint(1,CHARGERS_PER_STATION)
         self.robot.driveTo((x,y))
 
+def ease(x: float) -> float:
+    return 4 * x * x * x if x < 0.5 else 1 - pow(-2 * x + 2, 3) / 2
 
 class Robot(object):
 
@@ -87,7 +89,7 @@ class Robot(object):
         self.id = Robot.ROBOCOUNT
 
         self.loaded = False
-        self.battery = 0.8
+        self.battery = random.randint(0, 100) / 100
         self.speed = 4.0  # tiles per second
         self.unload_time = 0.5  # seconds
 
@@ -148,14 +150,15 @@ class Robot(object):
     def driveForward(self):
         def forward(robot, data):
             steps, remaining = data
+            shift = ease(remaining/steps)
             if robot.heading == NORTH:
-                robot.offset[1] = 1 - remaining/steps
+                robot.offset[1] = 1 - shift
             elif robot.heading == WEST:
-                robot.offset[0] = -1 + remaining/steps
+                robot.offset[0] = -1 + shift
             elif robot.heading == SOUTH:
-                robot.offset[1] = -1 + remaining/steps
+                robot.offset[1] = -1 + shift
             elif robot.heading == EAST:
-                robot.offset[0] = 1 - remaining/steps
+                robot.offset[0] = 1 - shift
             return remaining==0, (steps, remaining -1 )
 
         steps = FRAME_RATE // self.speed

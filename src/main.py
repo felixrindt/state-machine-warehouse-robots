@@ -17,7 +17,7 @@ def mainloop():
 
     size = width, height = 1280, 720
     viewport = pygame.Rect(0, -height + round((2.2+CHARGERS_PER_STATION)*TILE_SIZE), width, height)
-    screen = pygame.display.set_mode(size, pygame.OPENGL | pygame.RESIZABLE)
+    screen = pygame.display.set_mode(size, pygame.RESIZABLE)
 
     robots = [bots.Robot(x, y) for x in range(0, width//TILE_SIZE, 3) for y in range(-1-CHARGERS_PER_STATION, -1, 1)]
 
@@ -29,7 +29,7 @@ def mainloop():
 
     from time import time
     while True:
-
+        """ INPUT """
         for event in pygame.event.get():
             if event.type == pygame.QUIT: sys.exit()
             if event.type == pygame.VIDEORESIZE:
@@ -43,15 +43,13 @@ def mainloop():
         viewport.x += pressed[pygame.K_RIGHT] - pressed[pygame.K_LEFT]
 
         """ LOGIC """
-
-
         if not paused:
-
             for idx, r in enumerate(robots):
                 modulus = FRAME_RATE//srates[r]
                 if tick % modulus == idx % modulus:
                     sd = SensorData(r, robots)
                     if False and sd.collided:
+                        # collisions seem to happen when exiting the charger into station traffic
                         paused = True
                     r.sensorData(sd)
             for robot in robots:
